@@ -11,25 +11,55 @@ st.set_page_config(
 )
 
 # =========================================================
-# LOAD MODEL
+# TITLE
 # =========================================================
 
 st.title("🏦 Bankruptcy Prediction Tool")
 
-MODEL_PATH = "models/trained_model.pkl"
+# =========================================================
+# MODEL SELECTION
+# =========================================================
 
-@st.cache_resource
+st.sidebar.header("🧠 Model Selection")
+
+MODEL_DIR = "models"
+
+# Find available models
+if not os.path.exists(MODEL_DIR):
+    st.error(f"Model directory '{MODEL_DIR}' not found.")
+    st.stop()
+
+model_files = [
+    f for f in os.listdir(MODEL_DIR)
+    if f.endswith(".pkl") or f.endswith(".joblib")
+]
+
+if not model_files:
+    st.error("No trained models found in the 'models/' folder.")
+    st.stop()
+
+selected_model_file = st.sidebar.selectbox(
+    "Select a trained model",
+    model_files
+)
+
+MODEL_PATH = os.path.join(MODEL_DIR, selected_model_file)
+
+@st.cache_resource(show_spinner=False)
 def load_model(path):
     return joblib.load(path)
 
 try:
     model = load_model(MODEL_PATH)
-    st.success("Model loaded successfully")
+    st.sidebar.success(f"Loaded model: {selected_model_file}")
 except Exception as e:
     st.error(f"Failed to load model: {e}")
     st.stop()
 
-# Get feature names
+# =========================================================
+# FEATURE NAMES
+# =========================================================
+
 if hasattr(model, "feature_names_in_"):
     feature_names = list(model.feature_names_in_)
 else:
@@ -67,8 +97,8 @@ def predict_from_csv(data, threshold=0.10):
         "Prediction": np.where(preds == 1, "Bankrupt", "Not Bankrupt"),
         "Bankruptcy_Probability (%)": (probs * 100).round(2),
         "Risk_Level": np.where(
-            probs >= 0.7, "High",
-            np.where(probs >= 0.4, "Medium", "Low")
+            probs >= threshold * 3, "High",
+            np.where(probs >= threshold * 1.5, "Medium", "Low")
         ),
         "Confidence (%)": (np.abs(probs - 0.5) * 200).round(2)
     })
@@ -105,7 +135,7 @@ if uploaded_file is not None:
         results = predict_from_csv(df, threshold)
 
         # =================================================
-        # RESULTS TABLE
+        # RESULTS
         # =================================================
 
         st.header("📊 Prediction Results")
@@ -129,12 +159,11 @@ if uploaded_file is not None:
         with col1:
             fig, ax = plt.subplots()
             pred_counts = results["Prediction"].value_counts()
-
             ax.bar(pred_counts.index, pred_counts.values, color=["red", "green"])
             ax.set_title("Prediction Distribution")
             ax.set_ylabel("Count")
             ax.set_xticks(range(len(pred_counts.index)))
-            ax.set_xticklabels(pred_counts.index, rotation=0, ha="center")
+            ax.set_xticklabels(pred_counts.index, rotation=0)
             st.pyplot(fig)
 
         # Risk level distribution
@@ -143,12 +172,11 @@ if uploaded_file is not None:
             risk_counts = results["Risk_Level"].value_counts().reindex(
                 ["Low", "Medium", "High"]
             )
-
             ax.bar(risk_counts.index, risk_counts.values, color=["green", "orange", "red"])
             ax.set_title("Risk Level Distribution")
             ax.set_ylabel("Count")
             ax.set_xticks(range(len(risk_counts.index)))
-            ax.set_xticklabels(risk_counts.index, rotation=0, ha="center")
+            ax.set_xticklabels(risk_counts.index, rotation=0)
             st.pyplot(fig)
 
         # Probability histogram

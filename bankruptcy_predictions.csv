@@ -3,7 +3,7 @@ Company_ID,Prediction,Bankruptcy_Probability (%),Risk_Level,Confidence (%)
 2,Not Bankrupt,0.38,Low,99.25
 3,Not Bankrupt,2.25,Low,95.5
 4,Bankrupt,12.5,Low,75.0
-5,Bankrupt,18.62,Low,62.75
+5,Bankrupt,18.62,Medium,62.75
 6,Not Bankrupt,8.5,Low,83.0
 7,Not Bankrupt,7.5,Low,85.0
 8,Not Bankrupt,2.88,Low,94.25
